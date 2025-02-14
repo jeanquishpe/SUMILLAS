@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Documentos</h1>
+    <div>
+        <label for="filterGerencia">Gerencia:</label>
+        <select id="filterGerencia">
+            <option value="">Todos</option>
+            <option value="Gerencia1">Gerencia1</option>
+            <option value="Gerencia2">Gerencia2</option>
+            <!-- Agrega más opciones según sea necesario -->
+        </select>
+    </div>
+    <div>
+        <label for="filterYear">Año:</label>
+        <select id="filterYear">
+            <option value="">Todos</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <!-- Agrega más opciones según sea necesario -->
+        </select>
+    </div>
+    <div>
+        <label for="filterMonth">Mes:</label>
+        <select id="filterMonth">
+            <option value="">Todos</option>
+            <option value="01">Enero</option>
+            <option value="02">Febrero</option>
+            <!-- Agrega más opciones según sea necesario -->
+        </select>
+    </div>
+    <div>
+        <label for="searchKeyword">Buscar por palabra clave:</label>
+        <input type="text" id="searchKeyword" placeholder="Ingrese palabra clave">
+    </div>
+    <div class="grid">
+        <!-- Aquí se insertan los documentos -->
+        {% for document in documents %}
+            <div class="document">
+                <h3>{{ document.title }}</h3>
+                <p>{{ document.date }}</p>
+                <p>{{ document.subject }}</p>
+                <p>{{ document.from }}</p>
+                <p>{{ document.to }}</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function applyFilters() {
+            const gerencia = document.getElementById('filterGerencia').value;
+            const year = document.getElementById('filterYear').value;
+            const month = document.getElementById('filterMonth').value;
+            const keywords = document.getElementById('searchKeyword').value.toLowerCase().split(' ');
+
+            const documents = document.querySelectorAll('.document');
+            let visibleCount = 0;
+
+            documents.forEach(doc => {
+                // Búsqueda por palabras clave en diferentes campos
+                const documentName = doc.querySelector('h3')?.textContent || '';
+                const subject = doc.querySelector('p:nth-of-type(3)')?.textContent || '';
+                const fromPerson = doc.querySelector('p:nth-of-type(4)')?.textContent || '';
+                const toPerson = doc.querySelector('p:nth-of-type(5)')?.textContent || '';
+
+                const searchText = `${documentName} ${subject} ${fromPerson} ${toPerson}`;
+
+                const matchGerencia = !gerencia || documentName.includes(gerencia);
+                const matchYear = !year || documentName.includes(year);
+                const matchMonth = !month || documentName.includes(month);
+                const matchKeywords = keywords.every(keyword => searchText.toLowerCase().includes(keyword));
+
+                if (matchGerencia && matchYear && matchMonth && matchKeywords) {
+                    doc.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    doc.classList.add('hidden');
+                }
+            });
+
+            // Mostrar mensaje cuando no hay resultados
+            const noResultsMessage = document.getElementById('noResultsMessage') || createNoResultsMessage();
+            if (visibleCount === 0) {
+                noResultsMessage.classList.remove('hidden');
+            } else {
+                noResultsMessage.classList.add('hidden');
+            }
+        }
+
+        // Crear mensaje de "no hay resultados"
+        function createNoResultsMessage() {
+            const message = document.createElement('div');
+            message.id = 'noResultsMessage';
+            message.className = 'col-span-full p-8 text-center text-gray-500 hidden';
+            message.innerHTML = `
+                <p class="text-lg">No se encontraron documentos que coincidan con los filtros seleccionados</p>
+                <p class="text-sm mt-2">Intenta ajustar los criterios de búsqueda</p>
+            `;
+            document.querySelector('.grid').appendChild(message);
+            return message;
+        }
+
+        // Función debounce para evitar muchas búsquedas consecutivas
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Agregar event listeners a los filtros
+        document.getElementById('filterGerencia').addEventListener('change', applyFilters);
+        document.getElementById('filterYear').addEventListener('change', applyFilters);
+        document.getElementById('filterMonth').addEventListener('change', applyFilters);
+        document.getElementById('searchKeyword').addEventListener('input', debounce(applyFilters, 300));
+
+        // Validar el formulario antes de enviar
+        document.querySelector('#uploadForm').addEventListener('submit', function(e) {
+            const documentName = document.getElementById('document_name').value;
+            const subject = document.getElementById('subject').value;
+
+            if (documentName !== documentName.toUpperCase()) {
+                e.preventDefault();
+                alert('El nombre del documento debe estar en mayúsculas');
+                return false;
+            }
+
+            if (subject !== subject.toUpperCase()) {
+                e.preventDefault();
+                alert('El asunto debe estar en mayúsculas');
+                return false;
+            }
+        });
+
+        // Aplicar filtros al cargar la página
+        document.addEventListener('DOMContentLoaded', applyFilters);
+    });
+</script>
+{% endblock %}
